@@ -27,7 +27,7 @@ CREATE TABLE MovieDatabase.Movies
 	Title NVARCHAR(128) NOT NULL,
 	[Length] INT NOT NULL,                   
 	[Year] INT NOT NULL,
-	IMDBID INT NOT NULL,                                                  --not sure what the NUL we have in the database model means
+	IMDBID INT DEFAULT(NULL),
 	VerifiedOn DATETIMEOFFSET DEFAULT(NULL),
 	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0),
 	CreatedOn DATETIMEOFFSET NOT NULL DEFAULT(SYSDATETIMEOFFSET()),
@@ -51,8 +51,8 @@ CREATE TABLE MovieDatabase.Watchlists
 (
 	WatchlistID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
 	UserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID),
-	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),  --should have multiple movies on a watchlist, how does that work with our initial design?
-	WatchedOn DATETIMEOFFSET,
+	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
+	WatchedOn DATETIMEOFFSET DEFAULT(NULL),
 	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0)
 
 	UNIQUE(UserID, MovieID)
@@ -130,10 +130,10 @@ GO
 
 --Create new Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
-	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT
+	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT
 AS
-INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID)
-VALUES(@Title, @Length, @Year, @UserID);
+INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
+VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
 GO
 
 --Create new User
@@ -181,16 +181,17 @@ WHERE ReviewID = @ReviewID
 
 --Verify Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.VerifyMovie
-  @MovieID INT
+  @MovieID INT, @IsAdmin INT
 AS
-UPDATE MovieDatabase.Movies
-SET
-  VerifiedOn = SYSDATETIMEOFFSET()
-WHERE MovieID = @MovieID
+IF @IsAdmin = 1 THEN
+  UPDATE MovieDatabase.Movies
+  SET
+    VerifiedOn = SYSDATETIMEOFFSET()
+  WHERE MovieID = @MovieID
 
 --Update WatchList
 CREATE OR ALTER PROCEDURE MovieDatabase.UpdateWatchlist
-  @WatchedOn DATETIMEOFFSET
+  @WatchListID INT, @WatchedOn DATETIMEOFFSET
 AS
 UPDATE MovieDatabase.Watchlists
 SET
