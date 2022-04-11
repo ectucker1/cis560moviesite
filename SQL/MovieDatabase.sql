@@ -1,5 +1,5 @@
 
-
+--Setup
 IF SCHEMA_ID(N'MovieDatabase') IS NULL
    EXEC(N'CREATE SCHEMA [MovieDatabase];');
 GO
@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS MovieDatabase.Watchlists
 DROP TABLE IF EXISTS MovieDatabase.Genres
 DROP TABLE IF EXISTS MovieDatabase.MovieGenres
 
+--TABLE DECLARATIONS
 CREATE TABLE MovieDatabase.Users
 (
 	UserID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
@@ -41,18 +42,18 @@ CREATE TABLE MovieDatabase.Reviews
 	ReviewingUserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID),
 	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
 	StarRating INT NOT NULL CHECK(StarRating BETWEEN 0 AND 5),
-	[Text] NVARCHAR(1024),                          
+	[Text] TEXT,                          
 	PostedOn DATETIMEOFFSET NOT NULL DEFAULT(SYSDATETIMEOFFSET()),
-	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1)
+	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0)
 );
 
 CREATE TABLE MovieDatabase.Watchlists
 (
 	WatchlistID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
 	UserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID),
-	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
+	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),  --should have multiple movies on a watchlist, how does that work with our initial design?
 	WatchedOn DATETIMEOFFSET,
-	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1)
+	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0)
 
 	UNIQUE(UserID, MovieID)
 );
@@ -103,7 +104,7 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.GetWatchlist
 	@UserID INT
 AS
---Find all movies on a user’s watchlist
+--Find all movies on a userâ€™s watchlist
 SELECT W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.Watchlists W ON W.MovieID = M.MovieID
@@ -124,9 +125,10 @@ GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn
 ORDER BY M.CreatedOn ASC
 GO
 
---Insert and Update stored procedures
 
---Create new movie
+--INSERT STORED PROCEDURES
+
+--Create new Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
 	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT
 AS
@@ -134,10 +136,72 @@ INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID)
 VALUES(@Title, @Length, @Year, @UserID);
 GO
 
---Create new user
+--Create new User
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateUser
 	@Email NVARCHAR(128), @DisplayName NVARCHAR(64)
 AS
 INSERT MovieDatabase.Users(Email, DisplayName)
 VALUES(@Email, @DisplayName);
 
+--Create new Review
+CREATE OR ALTER PROCEDURE MovieDatabase.CreateReview
+  @UserID INT, @MovieID INT, @Text TEXT, @StarRating INT
+AS
+INSERT MovieDatabase.Reviews(ReviewingUserID, MovieID, [Text], StarRating)
+VALUES(@UserID, @MovieID, @Text, @StarRating)
+
+--Create new Watchlist
+CREATE OR ALTER PROCEDURE MovieDatabase.CreateWatchlist
+  @UserID INT, @MovieID INT
+AS
+INSERT MovieDatabase.Watchlists(UserID, MovieID)
+VALUES(@UserID, @MovieID)
+
+
+--UPDATE STORED PROCEDURES
+
+--Update Review
+CREATE OR ALTER PROCEDURE MovieDatabase.UpdateReview
+  @ReviewID INT, @Text TEXT, @StarRating INT
+AS
+UPDATE MovieDatabase.Reviews
+SET
+  [Text] = @Text,
+  StarRating = @StarRating
+WHERE ReviewID = @ReviewID
+
+--Delete Review
+CREATE OR ALTER PROCEDURE MovieDatabase.DeleteReview
+  @ReviewID INT
+AS
+UPDATE MovieDatabase.Reviews
+SET
+  IsDeleted = 1
+WHERE ReviewID = @ReviewID
+
+--Verify Movie
+CREATE OR ALTER PROCEDURE MovieDatabase.VerifyMovie
+  @MovieID INT
+AS
+UPDATE MovieDatabase.Movies
+SET
+  VerifiedOn = SYSDATETIMEOFFSET()
+WHERE MovieID = @MovieID
+
+--Update WatchList
+CREATE OR ALTER PROCEDURE MovieDatabase.UpdateWatchlist
+  @WatchedOn DATETIMEOFFSET
+AS
+UPDATE MovieDatabase.Watchlists
+SET
+  WatchedOn = @WatchedOn
+WHERE WatchlistID = @WatchlistID
+
+--Delete Watchlist
+CREATE OR ALTER PROCEDURE MovieDatabase.DeleteWatchlist
+  @WatchlistID INT
+AS
+UPDATE MovieDatabase.Watchlists
+SET
+  IsDeleted = 1
+WHERE WatchlistID = @WatchlistID
