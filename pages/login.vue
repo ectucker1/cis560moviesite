@@ -1,11 +1,9 @@
 <template>
-  <div>
-    <p>Index Page</p>
-  </div>
+  <Navbar/>
 </template>
 
 <script>
 export default {
-  name: 'Index'
+  name: 'LoginPage'
 }
 </script>
