@@ -26,7 +26,7 @@ export default {
   props: ['title', 'releaseDate', 'rating', 'id','imageUrl'],
   data() {
     return {
-      movieUrl: "/movie/" + this.id
+      movieUrl: "/movies/" + this.id
     }
   }
 }
