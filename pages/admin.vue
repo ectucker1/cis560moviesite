@@ -1,0 +1,60 @@
+<template>
+  <div>
+    <Navbar/>
+
+    <b-container>
+      <div class="bg-light mb-5 rounded">
+        <h1 class="p-5">Admin Moderation Queue</h1>
+        <b-table striped hover :items="movies" :fields="fields">
+          <template #cell(actions)="row">
+            <b-button variant="primary" size="sm" class="mr-1">
+              Approve
+            </b-button>
+            <b-button size="sm" class="mr-1">
+              Delete
+            </b-button>
+          </template>
+        </b-table>
+      </div>
+    </b-container>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      fields: [
+        {
+          key: 'title',
+          sortable: false
+        },
+        {
+          key: 'releaseDate',
+          sortable: true
+        },
+        {
+          key: 'genre',
+          sortable: true
+        },
+        {
+          key: 'length',
+          label: 'Runtime'
+        },
+        {
+          key: 'actions',
+          label: 'Actions'
+        }
+      ],
+      movies: [
+        { id: '0', title: 'Test Title', releaseDate: '2021', genre: 'Action', length: 120 },
+        { id: '1', title: 'Test Title 2', releaseDate: '2022', genre: 'Drama', length: 130 },
+        { id: '2', title: 'Test Title 3', releaseDate: '2022', genre: 'Adventure', length: 125 },
+        { id: '3', title: 'Test Title 4', releaseDate: '2023', genre: 'Adventure', length: 121 },
+        { id: '4', title: 'Test Title 5', releaseDate: '2024', genre: 'Drama', length: 164 }
+      ]
+    }
+  },
+  name: 'AdminPage'
+}
+</script>

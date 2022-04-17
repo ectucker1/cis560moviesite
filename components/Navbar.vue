@@ -10,6 +10,7 @@
           <b-nav-item href="/">Search</b-nav-item>
           <b-nav-item href="/submit">Submit</b-nav-item>
           <b-nav-item href="/">Watchlist</b-nav-item>
+          <b-nav-item href="/admin">Admin</b-nav-item>
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
