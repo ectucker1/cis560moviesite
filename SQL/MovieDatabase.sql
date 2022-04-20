@@ -107,7 +107,7 @@ CREATE OR ALTER PROCEDURE MovieDatabase.FilterByGenre
    @GenreId INT                                        --Do we want to be able to search for multiple genres at a time? If so can we put those values in multiple declared variables?
 AS
 -- Show all movies with a selected combination of genres.         
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) 
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
 	INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
@@ -116,7 +116,7 @@ FROM MovieDatabase.Movies M
 WHERE M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
 GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
-ORDER BY M.Title ASC
+ORDER BY AVG(R.StarRating) DESC , M.Title ASC 
 GO
 
 CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
@@ -152,7 +152,7 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
 AS
 --Find all movies that have not been approved and information about the user that submitted it.
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn 
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn, COUNT(DISTINCT M.MovieID) AS NumberOfUnverified
 FROM MovieDatabase.Movies M 
 	INNER JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
   INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
