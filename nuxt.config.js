@@ -24,6 +24,10 @@ export default {
   plugins: [
   ],
 
+  serverMiddleware: [
+    { path: "/server-middleware", handler: "~/server-middleware/rest.js" },
+  ],
+
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
 
@@ -35,7 +39,12 @@ export default {
   modules: [
     // https://go.nuxtjs.dev/bootstrap
     'bootstrap-vue/nuxt',
+    '@nuxtjs/axios',
   ],
+
+  axios: {
+    // proxy: true
+  },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
