@@ -178,19 +178,20 @@ GROUP BY M.Title, M.[Year], M.[Length], G.[Name]
 GO
 
 --Function to check login information
-CREATE OR ALTER FUNCTION MovieDatabase.CheckLogin
-(
-  @DisplayName NVARCHAR(64), @Password NVARCHAR(128)
-)
-RETURNS INT
+CREATE OR ALTER PROCEDURE MovieDatabase.CheckLogin
+  @DisplayName NVARCHAR(64), @PasswordHash NVARCHAR(128)
 AS
-BEGIN
-
-
-
-RETURN 
-
-END;
+IF NOT EXISTS (SELECT U.UserID
+FROM MovieDatabase.Users U
+  WHERE U.DisplayName = @DisplayName
+    AND U.PasswordHash = @PasswordHash
+)
+SELECT NULL
+ELSE
+  SELECT U.UserID
+  FROM MovieDatabase.Users U
+    WHERE U.DisplayName = @DisplayName
+      AND U.PasswordHash = @PasswordHash
 GO
 
 --INSERT STORED PROCEDURES
@@ -254,7 +255,7 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.VerifyMovie
   @MovieID INT, @IsAdmin INT
 AS
-IF @IsAdmin = 1 THEN
+IF @IsAdmin = 1
   UPDATE MovieDatabase.Movies
   SET
     VerifiedOn = SYSDATETIMEOFFSET()
