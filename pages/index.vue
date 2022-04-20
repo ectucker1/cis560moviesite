@@ -100,7 +100,7 @@ export default {
     }
   },
   async fetch() {
-    this.movies = await this.$axios.$get('http://localhost:3000/server-middleware/movies')
+    this.movies = await this.$axios.$get('/server-middleware/movies')
   },
   name: 'IndexPage'
 }
