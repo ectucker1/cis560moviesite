@@ -4,12 +4,12 @@ IF SCHEMA_ID(N'MovieDatabase') IS NULL
    EXEC(N'CREATE SCHEMA [MovieDatabase];');
 GO
 
-DROP TABLE IF EXISTS MovieDatabase.Users
-DROP TABLE IF EXISTS MovieDatabase.Movies
-DROP TABLE IF EXISTS MovieDatabase.Reviews
-DROP TABLE IF EXISTS MovieDatabase.Watchlists
-DROP TABLE IF EXISTS MovieDatabase.Genres
-DROP TABLE IF EXISTS MovieDatabase.MovieGenres
+DROP TABLE IF EXISTS MovieDatabase.MovieGenres;
+DROP TABLE IF EXISTS MovieDatabase.Genres;
+DROP TABLE IF EXISTS MovieDatabase.Watchlists;
+DROP TABLE IF EXISTS MovieDatabase.Reviews;
+DROP TABLE IF EXISTS MovieDatabase.Movies;
+DROP TABLE IF EXISTS MovieDatabase.Users;
 
 --TABLE DECLARATIONS
 CREATE TABLE MovieDatabase.Users
@@ -25,7 +25,7 @@ CREATE TABLE MovieDatabase.Movies
 (
 	MovieID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
 	Title NVARCHAR(128) NOT NULL,
-	[Length] INT NOT NULL,                   
+	[Length] INT NOT NULL,
 	[Year] INT NOT NULL,
 	IMDBID INT DEFAULT(NULL),
 	VerifiedOn DATETIMEOFFSET DEFAULT(NULL),
@@ -42,7 +42,7 @@ CREATE TABLE MovieDatabase.Reviews
 	ReviewingUserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID),
 	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
 	StarRating INT NOT NULL CHECK(StarRating BETWEEN 0 AND 5),
-	[Text] TEXT,                          
+	[Text] NVARCHAR(2048),
 	PostedOn DATETIMEOFFSET NOT NULL DEFAULT(SYSDATETIMEOFFSET()),
 	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0)
 );
@@ -77,10 +77,10 @@ CREATE TABLE MovieDatabase.MovieGenres
 --AGGREGATING QUERIES
 GO
 CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie        --Function to possibly replace FilterByGenre
-   @SortBy INT, @SortOrder INT, @Title NVARCHAR(128), @GenreId INT   --Multiple genre parameters?                                      
+   @SortBy INT, @SortOrder INT, @Title NVARCHAR(128), @GenreId INT   --Multiple genre parameters?
 AS
--- Search for movies with the given filters        
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) 
+-- Search for movies with the given filters
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating)
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
 	INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
@@ -90,24 +90,24 @@ FROM MovieDatabase.Movies M
 WHERE M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
 GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
-IF @SortBy = 0
-  IF @SortOrder = 0
-    ORDER BY M.[Year] ASC
-  ELSE
-    ORDER BY M.[Year] DESC
-ELSE
-  IF @SortOrder = 0
-    ORDER BY AVG(R.StarRating) ASC
-  ELSE
-    ORDER BY AVG(R.StarRating) DESC
+--IF @SortBy = 0
+--  IF @SortOrder = 0
+--    ORDER BY M.[Year] ASC
+--  ELSE
+--    ORDER BY M.[Year] DESC
+--ELSE
+--  IF @SortOrder = 0
+--    ORDER BY AVG(R.StarRating) ASC
+--  ELSE
+--    ORDER BY AVG(R.StarRating) DESC
 GO
 
 GO
 CREATE OR ALTER PROCEDURE MovieDatabase.FilterByGenre
    @GenreId INT                                        --Do we want to be able to search for multiple genres at a time? If so can we put those values in multiple declared variables?
 AS
--- Show all movies with a selected combination of genres.         
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) 
+-- Show all movies with a selected combination of genres.
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating)
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
 	INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
@@ -122,7 +122,7 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
 	@MovieID INT
 AS
---Search for/return all the reviews for a given movie. 
+--Search for/return all the reviews for a given movie.
 SELECT R.ReviewID, U.DisplayName, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn
 FROM MovieDatabase.Reviews R
   INNER JOIN MovieDatabase.Users U ON U.UserID = R.ReviewingUserID
@@ -130,8 +130,8 @@ FROM MovieDatabase.Reviews R
 		AND R.MovieID = @MovieID
 WHERE M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
-GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn
-ORDER BY R.PostedOn DESC 
+GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn, U.DisplayName
+ORDER BY R.PostedOn DESC
 GO
 
 CREATE OR ALTER PROCEDURE MovieDatabase.GetWatchlist
@@ -152,15 +152,15 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
 AS
 --Find all movies that have not been approved and information about the user that submitted it.
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn 
-FROM MovieDatabase.Movies M 
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn
+FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
   INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
   INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
 WHERE M.VerifiedOn IS NULL
   AND M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
-GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn
+GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn, M.[Year], M.[Length], G.[Name]
 ORDER BY M.CreatedOn ASC
 GO
 
@@ -179,26 +179,41 @@ GO
 
 --Function to check login information
 CREATE OR ALTER PROCEDURE MovieDatabase.CheckLogin
-  @DisplayName NVARCHAR(64), @PasswordHash NVARCHAR(128)
+  @Email NVARCHAR(128), @PasswordHash NVARCHAR(128)
 AS
 IF NOT EXISTS (SELECT U.UserID
 FROM MovieDatabase.Users U
-  WHERE U.DisplayName = @DisplayName
+  WHERE U.Email = @Email
     AND U.PasswordHash = @PasswordHash
 )
 SELECT NULL
 ELSE
   SELECT U.UserID
   FROM MovieDatabase.Users U
-    WHERE U.DisplayName = @DisplayName
+    WHERE U.Email = @Email
       AND U.PasswordHash = @PasswordHash
+GO
+
+--Function to get user information
+CREATE OR ALTER PROCEDURE MovieDatabase.GetUser
+  @UserID INT
+AS
+IF NOT EXISTS (SELECT U.UserID
+FROM MovieDatabase.Users U
+  WHERE U.UserID = @UserID
+)
+SELECT NULL
+ELSE
+  SELECT U.UserID, U.DisplayName, U.IsAdmin
+  FROM MovieDatabase.Users U
+    WHERE U.UserID = @UserID
 GO
 
 --INSERT STORED PROCEDURES
 
 --Create new Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
-	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreName NVARCHAR(128) --how do we know how many genres we are getting? 
+	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreName NVARCHAR(128) --how do we know how many genres we are getting?
 AS                                                                                                 --will need to insert into MovieGenre table
 INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
 VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
@@ -214,7 +229,7 @@ GO
 
 --Create new Review
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateReview
-  @UserID INT, @MovieID INT, @Text TEXT, @StarRating INT
+  @UserID INT, @MovieID INT, @Text NVARCHAR(2048), @StarRating INT
 AS
 INSERT MovieDatabase.Reviews(ReviewingUserID, MovieID, [Text], StarRating)
 VALUES(@UserID, @MovieID, @Text, @StarRating)
@@ -232,7 +247,7 @@ GO
 
 --Update Review
 CREATE OR ALTER PROCEDURE MovieDatabase.UpdateReview
-  @ReviewID INT, @Text TEXT, @StarRating INT
+  @ReviewID INT, @Text NVARCHAR(2048), @StarRating INT
 AS
 UPDATE MovieDatabase.Reviews
 SET

@@ -60,11 +60,12 @@
       <b-row cols="1" cols-sm="1" cols-md="2" cols-lg="2" cols-xl="2">
         <MovieCard
           v-for="movie in movies"
-          :title="movie.title"
-          :release-date="movie.releaseDate"
+          :key="movie.MovieID"
+          :title="movie.Title"
+          :release-date="movie.Year"
           :rating="movie.rating"
-          :id="movie.id"
-          :image-url="movie.imageUrl"/>
+          :id="movie.MovieID"
+          :image-url="`${movie.MovieID}.jpg`"/>
       </b-row>
     </b-container>
   </div>
@@ -86,14 +87,20 @@ export default {
         { value: 2, text: 'Adventure' },
         { value: 3, text: 'Drama' }
       ],
-      movies: [
-        { id: '0', title: 'Test Title', releaseDate: '2021', rating: '4', imageUrl: 'nocover.jpg'},
-        { id: '1', title: 'Test Title 2', releaseDate: '2022', rating: '4', imageUrl: 'nocover.jpg'},
-        { id: '2', title: 'Test Title 3', releaseDate: '2022', rating: '3', imageUrl: 'nocover.jpg'},
-        { id: '3', title: 'Test Title 4', releaseDate: '2023', rating: '2', imageUrl: 'nocover.jpg'},
-        { id: '4', title: 'Test Title 5', releaseDate: '2024', rating: '2', imageUrl: 'nocover.jpg'}
-      ]
+
+      movies: [],
+
+      // movies: [
+      //   { id: '0', title: 'Test Title', releaseDate: '2021', rating: '4', imageUrl: 'nocover.jpg'},
+      //   { id: '1', title: 'Test Title 2', releaseDate: '2022', rating: '4', imageUrl: 'nocover.jpg'},
+      //   { id: '2', title: 'Test Title 3', releaseDate: '2022', rating: '3', imageUrl: 'nocover.jpg'},
+      //   { id: '3', title: 'Test Title 4', releaseDate: '2023', rating: '2', imageUrl: 'nocover.jpg'},
+      //   { id: '4', title: 'Test Title 5', releaseDate: '2024', rating: '2', imageUrl: 'nocover.jpg'}
+      // ]
     }
+  },
+  async fetch() {
+    this.movies = await this.$axios.$get('/server-middleware/movies')
   },
   name: 'IndexPage'
 }
