@@ -33,6 +33,7 @@
         <b-row cols="1" cols-sm="1" cols-md="2" cols-lg="2" cols-xl="2">
           <ReviewCard
             v-for="review in reviews"
+            :key="review.id"
             :username="review.author"
             :content="review.content"
             :rating="review.rating"

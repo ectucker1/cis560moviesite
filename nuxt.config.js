@@ -24,6 +24,10 @@ export default {
   plugins: [
   ],
 
+  serverMiddleware: [
+    { path: "/server-middleware", handler: "~/server-middleware/rest.js" },
+  ],
+
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
 
@@ -35,7 +39,35 @@ export default {
   modules: [
     // https://go.nuxtjs.dev/bootstrap
     'bootstrap-vue/nuxt',
+    '@nuxtjs/axios',
+    '@nuxtjs/auth-next'
   ],
+
+  auth: {
+    strategies: {
+      local: {
+        token: {
+          property: 'token',
+          global: true,
+          // required: true,
+          // type: 'Bearer'
+        },
+        user: {
+          property: 'user',
+          // autoFetch: true
+        },
+        endpoints: {
+          login: { url: '/server-middleware/auth/login', method: 'post' },
+          logout: { url: '/server-middleware/auth/logout', method: 'post' },
+          user: { url: '/server-middleware/auth/user', method: 'get' }
+        }
+      }
+    }
+  },
+
+  axios: {
+    // proxy: true
+  },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
