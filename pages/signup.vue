@@ -4,7 +4,7 @@
 
     <b-container class="bg-light rounded p-5">
       <h1 class="h3 mb-3 fw-normal">Sign Up for Movie Site</h1>
-      <b-form>
+      <b-form @submit.prevent="userSignup">
         <!--Email-->
         <b-form-group
           label="Email Address:"
@@ -47,11 +47,17 @@
 
         <b-button type="submit" variant="primary">Sign Up</b-button>
       </b-form>
+
+      <b-alert v-model="showError" variant="danger" dismissible class="mt-4">
+        Invalid signup information. That email may be used by another account.
+      </b-alert>
     </b-container>
   </div>
 </template>
 
 <script>
+import { sha256 } from 'js-sha256';
+
 export default {
   name: 'SignupPage',
   data() {
@@ -61,6 +67,26 @@ export default {
         username: '',
         password: ''
       },
+      showError: false
+    }
+  },
+  methods: {
+    async userSignup() {
+      try {
+        let signupResponse = await this.$axios.$post('/server-middleware/auth/signup', {
+          email: this.signup.email,
+          displayName: this.signup.username,
+          password: sha256(this.signup.password) // A good version of this would do salting, but we're not worrying about that
+        })
+
+        let loginResponse = await this.$auth.loginWith('local',{ data: {
+          email: this.signup.email,
+          password: sha256(this.signup.password)
+        }})
+        await this.$router.replace('/').catch(()=>{});
+      } catch (err) {
+        this.showError = true
+      }
     }
   }
 }
