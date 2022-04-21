@@ -74,39 +74,62 @@ CREATE TABLE MovieDatabase.MovieGenres
 );
 
 
---AGGREGATING QUERIES
+--QUERIES
+
+--Function to possibly replace FilterByGenre, searches for movies with the given filters (AGGREGATING QUERY)
 GO
-CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie        --Function to possibly replace FilterByGenre
-   @SortBy INT, @SortOrder INT, @Title NVARCHAR(128), @GenreId INT   --Multiple genre parameters?
+CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie        
+   @SortBy NVARCHAR(64), @SortOrder NVARCHAR(64), @Title NVARCHAR(128), @GenreID INT
 AS
--- Search for movies with the given filters
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating)
-FROM MovieDatabase.Movies M
-	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-	INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-  INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
-		AND G.GenreID = @GenreID
-    AND M.Title = @Title                    --not sure how to incorportate IF for title if they left title field blank
-WHERE M.IsDeleted = 0
-  AND VerifiedOn IS NOT NULL
-GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
---IF @SortBy = 0
---  IF @SortOrder = 0
---    ORDER BY M.[Year] ASC
---  ELSE
---    ORDER BY M.[Year] DESC
---ELSE
---  IF @SortOrder = 0
---    ORDER BY AVG(R.StarRating) ASC
---  ELSE
---    ORDER BY AVG(R.StarRating) DESC
+IF @Title IS NOT NULL AND @GenreID IS NOT NULL
+  SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+  FROM MovieDatabase.Movies M
+	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+    INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
+		  AND G.GenreID = @GenreID
+      AND M.Title = @Title
+  WHERE M.IsDeleted = 0
+    AND VerifiedOn IS NOT NULL
+  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
+  ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
+           (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
+           (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
+           (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
+ELSE IF @Title IS NOT NULL
+  SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+  FROM MovieDatabase.Movies M
+	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+    INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
+      AND M.Title = @Title
+  WHERE M.IsDeleted = 0
+    AND VerifiedOn IS NOT NULL
+  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
+  ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
+           (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
+           (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
+           (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
+ELSE IF @GenreID IS NOT NULL
+  SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+  FROM MovieDatabase.Movies M
+	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+    INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
+		  AND G.GenreID = @GenreID
+  WHERE M.IsDeleted = 0
+    AND VerifiedOn IS NOT NULL
+  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
+  ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
+           (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
+           (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
+           (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
 GO
 
-GO
+-- Show all movies with a selected combination of genres (AGGREGATING QUERY) 
 CREATE OR ALTER PROCEDURE MovieDatabase.FilterByGenre
-   @GenreId INT                                        --Do we want to be able to search for multiple genres at a time? If so can we put those values in multiple declared variables?
-AS
--- Show all movies with a selected combination of genres.         
+   @GenreId INT
+AS       
 SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
@@ -119,10 +142,10 @@ GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
 ORDER BY AVG(R.StarRating) DESC , M.Title ASC 
 GO
 
+--Search for/return all the reviews for a given movie.
 CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
 	@MovieID INT
 AS
---Search for/return all the reviews for a given movie.
 SELECT R.ReviewID, U.DisplayName, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn
 FROM MovieDatabase.Reviews R
   INNER JOIN MovieDatabase.Users U ON U.UserID = R.ReviewingUserID
@@ -134,10 +157,10 @@ GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn, U.Di
 ORDER BY R.PostedOn DESC
 GO
 
+--Find all movies on a user’s watchlist
 CREATE OR ALTER PROCEDURE MovieDatabase.GetWatchlist
 	@UserID INT
 AS
---Find all movies on a user’s watchlist
 SELECT W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.Watchlists W ON W.MovieID = M.MovieID
@@ -149,9 +172,9 @@ GROUP BY W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
 ORDER BY M.Title ASC
 GO
 
+--Find all movies that have not been approved and information about the user that submitted it. (AGGREGATING QUERY)
 CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
 AS
---Find all movies that have not been approved and information about the user that submitted it.
 SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn, COUNT(DISTINCT M.MovieID) AS NumberOfUnverified
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
@@ -165,10 +188,10 @@ ORDER BY M.CreatedOn ASC
 GO
 
 --Returns data for one MovieID
-CREATE OR ALTER PROCEDURE MovieDatabase.GetMovieData
+CREATE OR ALTER PROCEDURE MovieDatabase.GetMovieData --AGGREGATING QUERY
   @MovieID INT
 AS
-SELECT M.Title, M.[Year], M.[Length], G.[Name], AVG(R.StarRating) AS StarRating
+SELECT M.Title, M.[Year], M.[Length], G.[Name], AVG(R.StarRating) AS StarRating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
 FROM MovieDatabase.Movies M
   INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
   INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
@@ -209,14 +232,31 @@ ELSE
     WHERE U.UserID = @UserID
 GO
 
+--Function to get GenreID from GenreName so we can insert into MovieGenre table when creating new movies
+CREATE OR ALTER PROCEDURE MovieDatabase.GetGenreID
+  @GenreName NVARCHAR(64)
+AS
+SELECT G.GenreID
+FROM MovieDatabase.Genres G
+WHERE G.Name = @GenreName
+GO
+
 --INSERT STORED PROCEDURES
 
 --Create new Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
-	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreName NVARCHAR(128) --how do we know how many genres we are getting?
-AS                                                                                                 --will need to insert into MovieGenre table
+	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreName NVARCHAR(128)
+AS                                                                               
 INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
 VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
+GO
+
+--Insert genre for a movie
+CREATE OR ALTER PROCEDURE MovieDatabase.InsertMovieGenre
+  @GenreID INT, @MovieID INT
+AS
+INSERT MovieDatabase.MovieGenres(GenreID, MovieID)
+VALUES(@GenreID, @MovieID)
 GO
 
 --Create new User
