@@ -55,14 +55,6 @@ async function getUser(req) {
   }
 }
 
-app.all('/movies', async (req, res) => {
-  await sql.connect(sqlConfig)
-  const result = await sql.query`SELECT * FROM MovieDatabase.Movies`
-  await res.send(result.recordsets[0])
-
-  console.log(await getUser(req))
-})
-
 app.post('/auth/signup', async (req, res) => {
   try {
     // Search for user in database
@@ -111,6 +103,12 @@ app.all('/auth/user', async (req, res) => {
   } else {
     res.status(401).end()
   }
+})
+
+app.all('/movies', async (req, res) => {
+  await sql.connect(sqlConfig)
+  const result = await sql.query`SELECT * FROM MovieDatabase.Movies`
+  await res.send(result.recordsets[0])
 })
 
 module.exports = app
