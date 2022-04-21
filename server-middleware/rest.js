@@ -8,7 +8,7 @@ const sqlConfig = {
   password: process.env.SQL_SERVER_PASSWORD,
   database: process.env.SQL_SERVER_DATABASE,
   server: process.env.SQL_SERVER_URL,
-  port: process.env.SQL_SERVER_PORT,
+  port: parseInt(process.env.SQL_SERVER_PORT),
   pool: {
     max: 10,
     min: 0,
@@ -17,7 +17,8 @@ const sqlConfig = {
   options: {
     encrypt: false, // for azure
     trustServerCertificate: false // change to true for local dev / self-signed certs
-  }
+  },
+  parseJSON: true
 }
 
 const jwtKey = process.env.JWT_KEY
@@ -25,14 +26,57 @@ const jwtDuration = '3 days'
 
 app.use(bodyParser.json())
 
-app.all('/getJSON', (req, res) => {
-  res.json({ data: 'data' })
-})
+// Returns the user from the given request, based on the authorization token
+async function getUser(req) {
+  try {
+    // Extract UserID from token
+    let token = req.header('Authorization').split(' ')[1]
+    let user = jwt.verify(token, jwtKey);
+
+    // Search for user in database
+    let pool = await sql.connect(sqlConfig)
+    let userData = await pool.request()
+      .input('UserID', sql.Int, user.id)
+      .execute('MovieDatabase.GetUser')
+
+    return {
+      loggedIn: true,
+      id: userData.recordsets[0][0].UserID,
+      name: userData.recordsets[0][0].DisplayName,
+      admin: userData.recordsets[0][0].IsAdmin > 0
+    }
+  } catch {
+    return {
+      loggedIn: false,
+      id: -1,
+      name: '',
+      admin: false
+    }
+  }
+}
 
 app.all('/movies', async (req, res) => {
   await sql.connect(sqlConfig)
   const result = await sql.query`SELECT * FROM MovieDatabase.Movies`
   await res.send(result.recordsets[0])
+
+  console.log(await getUser(req))
+})
+
+app.post('/auth/signup', async (req, res) => {
+  try {
+    // Search for user in database
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('Email', sql.NVarChar(128), req.body.email)
+      .input('DisplayName', sql.NVarChar(64), req.body.displayName)
+      .input('PasswordHash', sql.NVarChar(128), req.body.password)
+      .execute('MovieDatabase.CreateUser')
+
+    return res.status(200).end()
+  } catch (e) {
+    return res.status(500).end()
+  }
 })
 
 app.all('/auth/login', async (req, res) => {
@@ -41,42 +85,30 @@ app.all('/auth/login', async (req, res) => {
   let userID = await pool.request()
     .input('Email', sql.NVarChar(128), req.body.email)
     .input('PasswordHash', sql.NVarChar(128), req.body.password)
-    .execute('CheckLogin')
+    .execute('MovieDatabase.CheckLogin')
 
   // User not found; removing
-  if (userID == null)
+  if (userID.recordsets[0][0]['UserID'] == null)
     return res.status(401).end()
 
   // Create and send token with UserID
-  let token = jwt.sign({ id: userID }, jwtKey, { algorithm: 'RS256', expiresIn: jwtDuration })
-  res.send({ token: token })
+  let token = jwt.sign({ id: userID.recordsets[0][0]['UserID'] }, jwtKey, { algorithm: 'HS256', expiresIn: jwtDuration })
+  await res.send({ token: token })
 })
 
 app.all('/auth/logout', async (req, res) => {
   // Don't need to handle logout on server - the token is already gone
-  res.status(400).send()
+  res.status(200).send()
 })
 
 app.all('/auth/user', async (req, res) => {
-  try {
-    // Extract UserID from token
-    let user = jwt.verify(token, jwtKey);
+  let user = await getUser(req)
 
-    // Search for user in database
-    let pool = await sql.connect(sqlConfig)
-    let userData = await pool.request()
-      .input('UserID', sql.Int, user.id)
-      .output('UserID', sql.Int)
-      .output('DisplayName', sql.Int)
-      .output('IsAdmin', sql.Int)
-      .execute('GetUser')
-
+  if (user.loggedIn) {
     res.send({
-      id: userData.UserId,
-      name: userData.DisplayName,
-      admin: userData.IsAdmin > 0
+      user: user
     })
-  } catch(err) {
+  } else {
     res.status(401).end()
   }
 })
