@@ -187,8 +187,19 @@ GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn, M.[Year], M.[
 ORDER BY M.CreatedOn ASC
 GO
 
---Returns data for one MovieID
-CREATE OR ALTER PROCEDURE MovieDatabase.GetMovieData --AGGREGATING QUERY
+--Get the top 50 users who have done the most reviews (AGGREGATING QUERY)
+CREATE OR ALTER PROCEDURE MovieDatabase.GetTopReviewers
+AS
+SELECT U.UserID, COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) AS UserReviewCount
+FROM MovieDatabase.Users U
+  INNER JOIN MovieDatabase.Reviews R ON U.UserID = R.ReviewingUserID
+GROUP BY U.UserID
+ORDER BY COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) DESC
+OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY
+GO
+
+--Returns data for one MovieID (AGGREGATING QUERY)
+CREATE OR ALTER PROCEDURE MovieDatabase.GetMovieData
   @MovieID INT
 AS
 SELECT M.Title, M.[Year], M.[Length], G.[Name], AVG(R.StarRating) AS StarRating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
