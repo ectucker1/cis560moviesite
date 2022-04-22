@@ -155,6 +155,7 @@ FROM MovieDatabase.Reviews R
 		AND R.MovieID = @MovieID
 WHERE M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
+  AND R.IsDeleted = 0
 GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn, U.DisplayName
 ORDER BY R.PostedOn DESC
 GO
@@ -169,6 +170,7 @@ FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.Users U ON U.UserID = W.UserID
 		AND U.UserID = @UserID
 WHERE M.IsDeleted = 0
+  AND W.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
 GROUP BY W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
 ORDER BY M.Title ASC
