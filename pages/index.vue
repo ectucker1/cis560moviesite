@@ -65,7 +65,7 @@
           :release-date="movie.Year"
           :rating="movie.rating"
           :id="movie.MovieID"
-          :image-url="`${movie.MovieID}.jpg`"/>
+          :image-url="movie.Poster"/>
       </b-row>
     </b-container>
   </div>
