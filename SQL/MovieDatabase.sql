@@ -28,7 +28,7 @@ CREATE TABLE MovieDatabase.Movies
 	[Length] INT NOT NULL,
 	[Year] INT NOT NULL,
 	IMDBID INT DEFAULT(NULL),
-	Poster NVARCHAR(256) NOT NULL,
+	Poster NVARCHAR(256) NOT NULL DEFAULT(N'/nocover.jpg'),
 	VerifiedOn DATETIMEOFFSET DEFAULT(NULL),
 	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0),
 	CreatedOn DATETIMEOFFSET NOT NULL DEFAULT(SYSDATETIMEOFFSET()),
@@ -75,7 +75,7 @@ CREATE TABLE MovieDatabase.MovieGenres
 );
 
 
---QUERIES
+--QUERY STORED PROCEDURES
 
 --Function to possibly replace FilterByGenre, searches for movies with the given filters (AGGREGATING QUERY)
 GO
@@ -127,7 +127,8 @@ ELSE IF @GenreID IS NOT NULL
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
 GO
 
--- Show all movies with a selected combination of genres (AGGREGATING QUERY) 
+/*
+-- Show all movies with a selected combination of genres (AGGREGATING QUERY) - POTENTIALLY BEING REPLACED 
 CREATE OR ALTER PROCEDURE MovieDatabase.FilterByGenre
    @GenreId INT
 AS       
@@ -141,7 +142,7 @@ WHERE M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
 GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
 ORDER BY AVG(R.StarRating) DESC , M.Title ASC 
-GO
+GO */
 
 --Search for/return all the reviews for a given movie.
 CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
@@ -176,11 +177,12 @@ GO
 --Find all movies that have not been approved and information about the user that submitted it. (AGGREGATING QUERY)
 CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
 AS
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn, COUNT(DISTINCT M.MovieID) AS NumberOfUnverified
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, G.[Name], U.UserID, U.DisplayName, M.CreatedOn, COUNT(DISTINCT M.MovieID) AS NumberOfUnverified
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
   INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
   INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+  INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
 WHERE M.VerifiedOn IS NULL
   AND M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
