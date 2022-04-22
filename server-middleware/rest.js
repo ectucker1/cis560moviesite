@@ -105,6 +105,32 @@ app.all('/auth/user', async (req, res) => {
   }
 })
 
+// Returns all the reviews for a movie given its ID
+app.get('/api/reviews/:movieID', async (req, res) => {
+  // Search for movie in database
+  let pool = await sql.connect(sqlConfig)
+  let reviews = await pool.request()
+    .input('MovieID', sql.Int, req.params.movieID)
+    .execute('MovieDatabase.GetReviews')
+
+  await res.send({
+    reviews: reviews.recordset
+  })
+})
+
+// Returns all the information about a movie given its ID
+app.get('/api/movies/:movieID', async (req, res) => {
+  // Search for movie in database
+  let pool = await sql.connect(sqlConfig)
+  let movie = await pool.request()
+    .input('MovieID', sql.Int, req.params.movieID)
+    .execute('MovieDatabase.GetMovieData')
+
+  await res.send({
+    movie: movie.recordset
+  })
+})
+
 app.all('/movies', async (req, res) => {
   await sql.connect(sqlConfig)
   const result = await sql.query`SELECT * FROM MovieDatabase.Movies`
