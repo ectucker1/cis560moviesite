@@ -11,7 +11,7 @@
           <h1>{{ movie.Title }}</h1>
           <h3 class="pb-2">{{ movie.StarRating }}/5</h3>
           <h3 class="pb-2">{{ movie.Year }}</h3>
-          <h3 class="pb-2">{{ movie.genre }}</h3>
+          <h3 class="pb-2">{{ movie.Name }}</h3>
           <h3 class="pb-2">{{ movie.Length }} minutes</h3>
           <!--Prompt for user's review-->
           <h1>Write a Review</h1>

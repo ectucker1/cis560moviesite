@@ -207,13 +207,13 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.GetMovieData
   @MovieID INT
 AS
-SELECT M.Title, M.[Year], M.[Length], G.[Name], AVG(R.StarRating) AS StarRating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+SELECT M.Title, M.[Year], M.[Length], G.[Name], AVG(R.StarRating) AS StarRating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews, M.Poster
 FROM MovieDatabase.Movies M
   INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
   INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
   INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
 WHERE M.MovieID = @MovieID
-GROUP BY M.Title, M.[Year], M.[Length], G.[Name]
+GROUP BY M.Title, M.[Year], M.[Length], G.[Name], M.Poster
 GO
 
 --Function to check login information
