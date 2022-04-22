@@ -11,7 +11,7 @@
               <b-list-group-item>{{ releaseDate }}</b-list-group-item>
               <b-list-group-item>{{ rating }}/10</b-list-group-item>
             </b-list-group>
-            <b-button href="#" variant="primary" class="mb-2">Add to Watchlist</b-button>
+            <b-button @click="addToWatchlist" variant="primary" class="mb-2">Add to Watchlist</b-button>
             <b-button :href="movieUrl" variant="secondary" class="mb-2">Read Reviews</b-button>
           </b-card-body>
         </b-col>
@@ -27,6 +27,11 @@ export default {
   data() {
     return {
       movieUrl: "/movies/" + this.id
+    }
+  },
+  methods: {
+    async addToWatchlist() {
+      await this.$axios.post("/server-middleware/watchlist/add", { movieId: this.id })
     }
   }
 }

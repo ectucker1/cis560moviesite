@@ -111,4 +111,67 @@ app.all('/movies', async (req, res) => {
   await res.send(result.recordsets[0])
 })
 
+app.all('/watchlist/get', async (req, res) => {
+  let pool = await sql.connect(sqlConfig)
+  let result = await pool.request()
+    .input('UserID', sql.Int, req.body.userId)
+    .execute('MovieDatabase.GetWatchlist')
+  await res.send(result.recordsets[0])
+})
+
+app.all('/watchlist/add', async (req, res) => {
+  let user = await getUser(req)
+
+  if (user.loggedIn) {
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('UserID', sql.Int, user.id)
+      .input('MovieID', sql.Int, req.body.movieId)
+      .execute('MovieDatabase.CreateWatchlist')
+    res.status(200).end()
+  } else {
+    res.status(401).end()
+  }
+})
+
+app.all('/watchlist/update', async (req, res) => {
+  let user = await getUser(req)
+
+  if (user.loggedIn) {
+    console.log(req.body)
+    if (req.body.watched) {
+      let pool = await sql.connect(sqlConfig)
+      let result = await pool.request()
+        .input('WatchListID', sql.Int, req.body.watchlistId)
+        .input('WatchedOn', sql.DateTimeOffset, new Date())
+        .execute('MovieDatabase.UpdateWatchlist')
+      res.status(200).end()
+    } else {
+      let pool = await sql.connect(sqlConfig)
+      let result = await pool.request()
+        .input('WatchListID', sql.Int, req.body.watchlistId)
+        .input('WatchedOn', sql.DateTimeOffset, null)
+        .execute('MovieDatabase.UpdateWatchlist')
+      res.status(200).end()
+    }
+  } else {
+    res.status(401).end()
+  }
+})
+
+app.all('/watchlist/remove', async (req, res) => {
+  let user = await getUser(req)
+
+  if (user.loggedIn) {
+    console.log(req.body)
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('WatchListID', sql.Int, req.body.watchlistId)
+      .execute('MovieDatabase.DeleteWatchlist')
+    res.status(200).end()
+  } else {
+    res.status(401).end()
+  }
+})
+
 module.exports = app
