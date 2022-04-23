@@ -71,6 +71,14 @@ app.post('/auth/signup', async (req, res) => {
   }
 })
 
+app.get('/api/movies/unverified/get', async (req, res) => {
+  let pool = await sql.connect(sqlConfig)
+  let result = await pool.request()
+    .execute('MovieDatabase.GetUnverifiedMovies')
+
+  res.send(result.recordsets[0])
+})
+
 // Sends a post request to the backend to create a new movie that is not verified
 app.post('/api/movies/submit', async (req, res) => {
   try {

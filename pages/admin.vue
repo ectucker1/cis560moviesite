@@ -26,19 +26,22 @@ export default {
     return {
       fields: [
         {
-          key: 'title',
+          key: 'Title',
+          label: 'Title',
           sortable: false
         },
         {
-          key: 'releaseDate',
+          key: 'Year',
+          label: 'Year',
           sortable: true
         },
         {
-          key: 'genre',
+          key: 'Name',
+          label: 'Genre',
           sortable: true
         },
         {
-          key: 'length',
+          key: 'Length',
           label: 'Runtime'
         },
         {
@@ -46,14 +49,20 @@ export default {
           label: 'Actions'
         }
       ],
-      movies: [
-        { id: '0', title: 'Test Title', releaseDate: '2021', genre: 'Action', length: 120 },
-        { id: '1', title: 'Test Title 2', releaseDate: '2022', genre: 'Drama', length: 130 },
-        { id: '2', title: 'Test Title 3', releaseDate: '2022', genre: 'Adventure', length: 125 },
-        { id: '3', title: 'Test Title 4', releaseDate: '2023', genre: 'Adventure', length: 121 },
-        { id: '4', title: 'Test Title 5', releaseDate: '2024', genre: 'Drama', length: 164 }
-      ]
+      // movies: [
+      //   { id: '0', title: 'Test Title', releaseDate: '2021', genre: 'Action', length: 120 },
+      //   { id: '1', title: 'Test Title 2', releaseDate: '2022', genre: 'Drama', length: 130 },
+      //   { id: '2', title: 'Test Title 3', releaseDate: '2022', genre: 'Adventure', length: 125 },
+      //   { id: '3', title: 'Test Title 4', releaseDate: '2023', genre: 'Adventure', length: 121 },
+      //   { id: '4', title: 'Test Title 5', releaseDate: '2024', genre: 'Drama', length: 164 }
+      // ]
+      movies: [],
     }
+  },
+  async fetch() {
+    let unverified = await this.$axios.get('/server-middleware/api/movies/unverified/get')
+    this.movies = unverified.data
+    await console.log(this.movies)
   },
   name: 'AdminPage'
 }
