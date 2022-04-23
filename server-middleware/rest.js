@@ -71,6 +71,32 @@ app.post('/auth/signup', async (req, res) => {
   }
 })
 
+// Sends a post request to the backend to create a new movie that is not verified
+app.post('/api/movies/submit', async (req, res) => {
+  try {
+    // Extract UserID from token
+    let token = req.header('Authorization').split(' ')[1]
+    let user = jwt.verify(token, jwtKey);
+
+    // Search for user in database
+    let pool = await sql.connect(sqlConfig)
+    console.log(req.body.data)
+    let result = await pool.request()
+      .input('Title', sql.NVarChar(128), req.body.data.title)
+      .input('Length', sql.Int, req.body.data.length)
+      .input('Year', sql.Int, req.body.data.releaseDate)
+      .input('UserID', sql.Int, user.id)
+      .input("IMDBID", sql.Int, null)
+      .input("GenreId", sql.Int, req.body.data.genre)
+      .execute('MovieDatabase.CreateMovie')
+
+    return res.status(200).end()
+  } catch (e) {
+    console.log(e)
+    return res.status(500).end()
+  }
+})
+
 app.all('/auth/login', async (req, res) => {
   // Search for user in database
   let pool = await sql.connect(sqlConfig)
@@ -133,7 +159,7 @@ app.get('/api/movies/:movieID', async (req, res) => {
 
 app.all('/movies', async (req, res) => {
   await sql.connect(sqlConfig)
-  const result = await sql.query`SELECT * FROM MovieDatabase.Movies`
+  const result = await sql.query`SELECT * FROM MovieDatabase.Movies WHERE VerifiedOn IS NOT NULL`
   await res.send(result.recordsets[0])
 })
 
