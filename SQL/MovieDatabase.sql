@@ -195,7 +195,7 @@ GO
 --Get the top 50 users who have done the most reviews (AGGREGATING QUERY)
 CREATE OR ALTER PROCEDURE MovieDatabase.GetTopReviewers
 AS
-SELECT U.UserID, COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) AS UserReviewCount
+SELECT U.UserID, U.DisplayName, COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) AS UserReviewCount
 FROM MovieDatabase.Users U
   INNER JOIN MovieDatabase.Reviews R ON U.UserID = R.ReviewingUserID
 GROUP BY U.UserID
@@ -261,10 +261,16 @@ GO
 
 --Create new Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
-	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreName NVARCHAR(128)
+	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreID INT
 AS                                                                               
 INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
 VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
+
+DECLARE @MovieID INT = SCOPE_IDENTITY();
+
+INSERT MovieDatabase.MovieGenres(GenreID, MovieID)
+VALUES(@GenreID, @MovieID)
+
 GO
 
 --Insert genre for a movie
