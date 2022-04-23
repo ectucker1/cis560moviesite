@@ -83,7 +83,7 @@ CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie
    @SortBy NVARCHAR(64), @SortOrder NVARCHAR(64), @Title NVARCHAR(128), @GenreID INT
 AS
 IF @Title IS NOT NULL AND @GenreID IS NOT NULL
-  SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+  SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
 	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
 	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
@@ -98,7 +98,7 @@ IF @Title IS NOT NULL AND @GenreID IS NOT NULL
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
 ELSE IF @Title IS NOT NULL
-  SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+  SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
 	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
 	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
@@ -112,7 +112,7 @@ ELSE IF @Title IS NOT NULL
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
 ELSE IF @GenreID IS NOT NULL
-  SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
+  SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
 	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
 	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
