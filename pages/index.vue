@@ -5,7 +5,7 @@
     <b-container>
       <!--Search form-->
       <div class="bg-light p-5 mb-5 rounded">
-        <b-form @submit.prevent="doSearch">
+        <b-form @submit.prevent="startSearch">
           <h1>Search for a Movie</h1>
           <p class="lead">Find exactly the thing to watch tonight.</p>
           <!--Title input-->
@@ -67,6 +67,11 @@
           :id="movie.MovieID"
           :image-url="movie.Poster"/>
       </b-row>
+
+      <b-button-group class="mb-4">
+        <b-button @click="prevPage">Prev</b-button>
+        <b-button @click="nextPage">Next</b-button>
+      </b-button-group>
     </b-container>
   </div>
 </template>
@@ -83,10 +88,7 @@ export default {
         page: 1
       },
       genreOptions: [
-        { value: null, text: 'Any' },
-        { value: 1, text: 'Action' },
-        { value: 2, text: 'Adventure' },
-        { value: 3, text: 'Drama' }
+        { value: null, text: 'Any' }
       ],
 
       movies: [],
@@ -101,6 +103,9 @@ export default {
     }
   },
   async fetch() {
+    let genreResponse = await this.$axios.get('/server-middleware/getgenres')
+    let renamedGenres = genreResponse.data.map((genre) => ({ value: genre.GenreID,text: genre.Name }))
+    this.genreOptions.push(...renamedGenres)
     if (this.$route.query.title)
       this.searchMovie.title = this.$route.query.title
     if (this.$route.query.genre)
@@ -110,13 +115,27 @@ export default {
     if (this.$route.query.sortDir)
       this.searchMovie.sortDir = this.$route.query.sortDir
     if (this.$route.query.page)
-      this.searchMovie.page = this.$route.query.page
+      this.searchMovie.page = parseInt(this.$route.query.page)
     let response = await this.$axios.post('/server-middleware/search', this.searchMovie)
     this.movies = response.data
   },
   methods: {
-    async doSearch() {
+    async startSearch() {
+      this.searchMovie.page = 1
+      await this.finishSearch()
+    },
+    async finishSearch() {
       await this.$router.push({ path: this.$route.path, query: this.searchMovie })
+    },
+    async nextPage() {
+      this.searchMovie.page = this.searchMovie.page + 1
+      await this.finishSearch()
+    },
+    async prevPage() {
+      this.searchMovie.page = this.searchMovie.page - 1
+      if (this.searchMovie.page < 1)
+        this.searchMovie.page = 1
+      await this.finishSearch()
     }
   },
   watch: {
