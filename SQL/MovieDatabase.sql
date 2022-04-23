@@ -79,47 +79,46 @@ CREATE TABLE MovieDatabase.MovieGenres
 
 --Function to possibly replace FilterByGenre, searches for movies with the given filters (AGGREGATING QUERY)
 GO
-CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie        
+CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie
    @SortBy NVARCHAR(64), @SortOrder NVARCHAR(64), @Title NVARCHAR(128), @GenreID INT, @Page INT
 AS
 IF @GenreID IS NOT NULL
   SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
 	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-    INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
-		  AND G.GenreID = @GenreID
-      AND CHARINDEX(@Title, M.Title) > 0
+    INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID AND G.GenreID = @GenreID
+    LEFT JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
   WHERE M.IsDeleted = 0
     AND VerifiedOn IS NOT NULL
+    AND (CHARINDEX(@Title, M.Title) > 0 OR @Title = N'')
   GROUP BY M.MovieID, M.Title, M.[Year], M.[Length], M.Poster
   ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
            (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
-  OFFSET @Page ROWS FETCH NEXT 50 ROWS ONLY
+  OFFSET (@Page - 1) * 50 ROWS FETCH NEXT 50 ROWS ONLY
 ELSE
   SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
-	  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-	  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-    INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
-		  AND CHARINDEX(@Title, M.Title) > 0
+	  LEFT JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+    LEFT JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+    LEFT JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
   WHERE M.IsDeleted = 0
     AND VerifiedOn IS NOT NULL
+    AND (CHARINDEX(@Title, M.Title) > 0 OR @Title = N'')
   GROUP BY M.MovieID, M.Title, M.[Year], M.[Length], M.Poster
   ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
            (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
-  OFFSET @Page ROWS FETCH NEXT 50 ROWS ONLY
+  OFFSET (@Page - 1) * 50 ROWS FETCH NEXT 50 ROWS ONLY
 GO
 
 /*
--- Show all movies with a selected combination of genres (AGGREGATING QUERY) - POTENTIALLY BEING REPLACED 
+-- Show all movies with a selected combination of genres (AGGREGATING QUERY) - POTENTIALLY BEING REPLACED
 CREATE OR ALTER PROCEDURE MovieDatabase.FilterByGenre
    @GenreId INT
-AS       
+AS
 SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
 FROM MovieDatabase.Movies M
 	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
@@ -129,7 +128,7 @@ FROM MovieDatabase.Movies M
 WHERE M.IsDeleted = 0
   AND VerifiedOn IS NOT NULL
 GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
-ORDER BY AVG(R.StarRating) DESC , M.Title ASC 
+ORDER BY AVG(R.StarRating) DESC , M.Title ASC
 GO */
 
 --Search for/return all the reviews for a given movie.
@@ -250,7 +249,7 @@ GO
 --Create new Movie
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
 	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreID INT
-AS                                                                               
+AS
 INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
 VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
 

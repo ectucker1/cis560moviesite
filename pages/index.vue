@@ -5,7 +5,7 @@
     <b-container>
       <!--Search form-->
       <div class="bg-light p-5 mb-5 rounded">
-        <b-form>
+        <b-form @submit.prevent="doSearch">
           <h1>Search for a Movie</h1>
           <p class="lead">Find exactly the thing to watch tonight.</p>
           <!--Title input-->
@@ -14,7 +14,7 @@
               <label class="col-form-label">Title</label>
             </b-col>
             <b-col sm="10">
-              <b-input id="search-title" v-model="search.title" type="text"></b-input>
+              <b-input id="search-title" v-model="searchMovie.title" type="text"></b-input>
             </b-col>
           </b-form-row>
           <!--Genre input-->
@@ -23,7 +23,7 @@
               <label class="col-form-label">Genre</label>
             </b-col>
             <b-col sm="10">
-              <b-form-select id="search-genre" v-model="search.genre" :options="genreOptions"></b-form-select>
+              <b-form-select id="search-genre" v-model="searchMovie.genre" :options="genreOptions"></b-form-select>
             </b-col>
           </b-form-row>
           <!--Sort by input-->
@@ -33,8 +33,8 @@
             </b-col>
             <b-col sm="10">
               <b-form-group>
-                <b-form-radio v-model="search.sortBy" value="date">Date</b-form-radio>
-                <b-form-radio v-model="search.sortBy" value="rating">Rating</b-form-radio>
+                <b-form-radio v-model="searchMovie.sortBy" value="Year">Date</b-form-radio>
+                <b-form-radio v-model="searchMovie.sortBy" value="Rating">Rating</b-form-radio>
               </b-form-group>
             </b-col>
           </b-form-row>
@@ -45,8 +45,8 @@
             </b-col>
             <b-col sm="10">
               <b-form-group>
-                <b-form-radio v-model="search.sortDir" value="asc">Ascending</b-form-radio>
-                <b-form-radio v-model="search.sortDir" value="desc">Descending</b-form-radio>
+                <b-form-radio v-model="searchMovie.sortDir" value="ASC">Ascending</b-form-radio>
+                <b-form-radio v-model="searchMovie.sortDir" value="DESC">Descending</b-form-radio>
               </b-form-group>
             </b-col>
           </b-form-row>
@@ -75,11 +75,12 @@
 export default {
   data() {
     return {
-      search: {
+      searchMovie: {
         title: '',
         genre: null,
-        sortBy: 'date',
-        sortDir: 'asc'
+        sortBy: 'Year',
+        sortDir: 'ASC',
+        page: 1
       },
       genreOptions: [
         { value: null, text: 'Any' },
@@ -100,7 +101,26 @@ export default {
     }
   },
   async fetch() {
-    this.movies = await this.$axios.$get('/server-middleware/movies')
+    if (this.$route.query.title)
+      this.searchMovie.title = this.$route.query.title
+    if (this.$route.query.genre)
+      this.searchMovie.genre = this.$route.query.genre
+    if (this.$route.query.sortBy)
+      this.searchMovie.sortBy = this.$route.query.sortBy
+    if (this.$route.query.sortDir)
+      this.searchMovie.sortDir = this.$route.query.sortDir
+    if (this.$route.query.page)
+      this.searchMovie.page = this.$route.query.page
+    let response = await this.$axios.post('/server-middleware/search', this.searchMovie)
+    this.movies = response.data
+  },
+  methods: {
+    async doSearch() {
+      await this.$router.push({ path: this.$route.path, query: this.searchMovie })
+    }
+  },
+  watch: {
+    '$route.query': '$fetch'
   },
   name: 'IndexPage'
 }

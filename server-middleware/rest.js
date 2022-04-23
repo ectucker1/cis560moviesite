@@ -200,4 +200,16 @@ app.all('/watchlist/remove', async (req, res) => {
   }
 })
 
+app.all('/search/', async (req, res) => {
+  let pool = await sql.connect(sqlConfig)
+  let result = await pool.request()
+    .input('Title', sql.NVarChar(128), req.body.title)
+    .input('SortOrder', sql.NVarChar(64), req.body.sortDir)
+    .input('SortBy', sql.NVarChar(64), req.body.sortBy)
+    .input('GenreID', sql.Int, req.body.genre)
+    .input('Page', sql.Int, req.body.page)
+    .execute('MovieDatabase.SearchForMovie')
+  await res.send(result.recordsets[0])
+})
+
 module.exports = app
