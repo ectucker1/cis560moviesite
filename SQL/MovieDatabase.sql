@@ -257,13 +257,18 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.CreateMovie
 	@Title NVARCHAR(128), @Length INT, @Year INT, @UserID INT, @IMDBID INT, @GenreID INT
 AS
-INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
-VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
 
-DECLARE @MovieID INT = @@identity;
+DECLARE @MovieTable TABLE(
+  MovieID INT
+)
+
+INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
+OUTPUT INSERTED.MovieID INTO @MovieTable
+VALUES(@Title, @Length, @Year, @UserID, @IMDBID)
 
 INSERT MovieDatabase.MovieGenres(GenreID, MovieID)
-VALUES(@GenreID, @MovieID)
+SELECT @GenreID, MT.MovieID
+FROM @MovieTable MT
 
 GO
 
