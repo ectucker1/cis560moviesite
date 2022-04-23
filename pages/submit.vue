@@ -40,7 +40,7 @@
         </b-form-row>
       </b-form>
       <b-alert v-model="showSuccess" variant="success" dismissible class="mt-4">
-        You have successfully sumitted a movie for approval!
+        You have successfully submitted a movie for approval!
       </b-alert>
     </b-container>
   </div>
