@@ -260,7 +260,7 @@ AS
 INSERT MovieDatabase.Movies(Title, [Length], [Year], CreatedByUserID, IMDBID)
 VALUES(@Title, @Length, @Year, @UserID, @IMDBID);
 
-DECLARE @MovieID INT = SCOPE_IDENTITY();
+DECLARE @MovieID INT = @@identity;
 
 INSERT MovieDatabase.MovieGenres(GenreID, MovieID)
 VALUES(@GenreID, @MovieID)
