@@ -39,6 +39,9 @@
         <b-button type="submit" variant="primary">Submit</b-button>
         </b-form-row>
       </b-form>
+      <b-alert v-model="showSuccess" variant="success" dismissible class="mt-4">
+        You have successfully sumitted a movie for approval!
+      </b-alert>
     </b-container>
   </div>
 </template>
@@ -48,6 +51,7 @@ export default {
   name: 'SubmitPage',
   data() {
     return {
+      showSuccess: false,
       submission: {
         title: '',
         genre: 1,
@@ -95,6 +99,7 @@ export default {
           releaseDate: this.submission.releaseDate,
           length: this.submission.length
         }})
+        this.showSuccess = true
       } catch (error) {
         this.showError = true
       }
