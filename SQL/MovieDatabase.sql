@@ -80,7 +80,7 @@ CREATE TABLE MovieDatabase.MovieGenres
 --Function to possibly replace FilterByGenre, searches for movies with the given filters (AGGREGATING QUERY)
 GO
 CREATE OR ALTER PROCEDURE MovieDatabase.SearchForMovie        
-   @SortBy NVARCHAR(64), @SortOrder NVARCHAR(64), @Title NVARCHAR(128), @GenreID INT
+   @SortBy NVARCHAR(64), @SortOrder NVARCHAR(64), @Title NVARCHAR(128), @GenreID INT, @Page INT
 AS
 IF @Title IS NOT NULL AND @GenreID IS NOT NULL
   SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
@@ -92,11 +92,12 @@ IF @Title IS NOT NULL AND @GenreID IS NOT NULL
       AND M.Title = @Title
   WHERE M.IsDeleted = 0
     AND VerifiedOn IS NOT NULL
-  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
+  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length], M.Poster
   ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
            (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
+  OFFSET @Page ROWS FETCH NEXT 50 ROWS ONLY
 ELSE IF @Title IS NOT NULL
   SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
@@ -106,11 +107,12 @@ ELSE IF @Title IS NOT NULL
       AND M.Title = @Title
   WHERE M.IsDeleted = 0
     AND VerifiedOn IS NOT NULL
-  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
+  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length], M.Poster
   ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
            (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
+  OFFSET @Page ROWS FETCH NEXT 50 ROWS ONLY
 ELSE IF @GenreID IS NOT NULL
   SELECT M.MovieID, M.Title, M.[Year], M.[Length], M.Poster, AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
   FROM MovieDatabase.Movies M
@@ -120,11 +122,12 @@ ELSE IF @GenreID IS NOT NULL
 		  AND G.GenreID = @GenreID
   WHERE M.IsDeleted = 0
     AND VerifiedOn IS NOT NULL
-  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
+  GROUP BY M.MovieID, M.Title, M.[Year], M.[Length], M.Poster
   ORDER BY (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'ASC' THEN AVG(R.StarRating) END) ASC,
            (CASE WHEN @SortBy = 'Rating' AND @SortOrder = 'DESC' THEN AVG(R.StarRating) END) DESC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'ASC' THEN M.[Year] END) ASC,
            (CASE WHEN @SortBy = 'Year' AND @SortOrder = 'DESC' THEN M.[Year] END) DESC
+  OFFSET @Page ROWS FETCH NEXT 50 ROWS ONLY
 GO
 
 /*
@@ -198,7 +201,7 @@ AS
 SELECT U.UserID, U.DisplayName, COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) AS UserReviewCount
 FROM MovieDatabase.Users U
   INNER JOIN MovieDatabase.Reviews R ON U.UserID = R.ReviewingUserID
-GROUP BY U.UserID
+GROUP BY U.UserID, U.DisplayName, R.ReviewID
 ORDER BY COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) DESC
 OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY
 GO
@@ -343,7 +346,7 @@ GO
 CREATE OR ALTER PROCEDURE MovieDatabase.DeleteMovie
   @MovieID INT, @IsAdmin INT
 AS
-IF @AsAdmin = 1
+IF @IsAdmin = 1
   UPDATE MovieDatabase.Movies
   SET
     IsDeleted = 1
