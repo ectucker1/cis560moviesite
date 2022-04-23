@@ -212,4 +212,11 @@ app.all('/search/', async (req, res) => {
   await res.send(result.recordsets[0])
 })
 
+app.all('/getgenres/', async (req, res) => {
+  let pool = await sql.connect(sqlConfig)
+  let result = await pool.request()
+    .execute('MovieDatabase.GetGenres')
+  await res.send(result.recordsets[0])
+})
+
 module.exports = app
