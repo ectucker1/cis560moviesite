@@ -235,13 +235,20 @@ ELSE
     WHERE U.UserID = @UserID
 GO
 
---Function to get GenreID from GenreName so we can insert into MovieGenre table when creating new movies
+--Procedure to get GenreID from GenreName so we can insert into MovieGenre table when creating new movies
 CREATE OR ALTER PROCEDURE MovieDatabase.GetGenreID
   @GenreName NVARCHAR(64)
 AS
 SELECT G.GenreID
 FROM MovieDatabase.Genres G
 WHERE G.Name = @GenreName
+GO
+
+--Procedure to get all genres with their names and IDs
+CREATE OR ALTER PROCEDURE MovieDatabase.GetGenres
+AS
+SELECT G.GenreID, G.[Name]
+FROM MovieDatabase.Genres G
 GO
 
 --INSERT STORED PROCEDURES
