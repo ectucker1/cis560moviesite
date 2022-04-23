@@ -339,6 +339,17 @@ IF @IsAdmin = 1
   WHERE MovieID = @MovieID
 GO
 
+--Delete (Update IsDeleted) Movie
+CREATE OR ALTER PROCEDURE MovieDatabase.DeleteMovie
+  @MovieID INT, @IsAdmin INT
+AS
+IF @AsAdmin = 1
+  UPDATE MovieDatabase.Movies
+  SET
+    IsDeleted = 1
+  WHERE MovieID = @MovieID
+GO
+
 --Update WatchList
 CREATE OR ALTER PROCEDURE MovieDatabase.UpdateWatchlist
   @WatchListID INT, @WatchedOn DATETIMEOFFSET
