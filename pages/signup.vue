@@ -37,7 +37,7 @@
           label-for="signup-password"
         >
           <b-form-input
-            id="signup-email"
+            id="signup-password"
             v-model="signup.password"
             type="password"
             placeholder="Enter a password"
