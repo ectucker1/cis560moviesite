@@ -63,7 +63,7 @@
           :key="movie.MovieID"
           :title="movie.Title"
           :release-date="movie.Year"
-          :rating="movie.rating"
+          :rating="movie.Rating"
           :id="movie.MovieID"
           :image-url="movie.Poster"/>
       </b-row>

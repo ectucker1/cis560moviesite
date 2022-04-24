@@ -9,7 +9,7 @@
           <b-card-body :title="title">
             <b-list-group flush>
               <b-list-group-item>{{ releaseDate }}</b-list-group-item>
-              <b-list-group-item>{{ rating }}/10</b-list-group-item>
+              <b-list-group-item>{{ rating }}/5</b-list-group-item>
             </b-list-group>
             <b-button @click="addToWatchlist" variant="primary" class="mb-2">Add to Watchlist</b-button>
             <b-button :href="movieUrl" variant="secondary" class="mb-2">Read Reviews</b-button>
