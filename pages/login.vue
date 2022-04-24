@@ -24,7 +24,7 @@
           label-for="login-password"
         >
           <b-form-input
-            id="login-email"
+            id="login-password"
             v-model="login.password"
             type="password"
             placeholder="Enter your account password"
