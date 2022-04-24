@@ -21,15 +21,22 @@
         <b-link href="/admin/mostwatchlisted" class="pl-5">Most Watchlisted</b-link>
       </div>
     </b-container>
+    <b-alert v-model="showApproveMessage" variant="success" dismissible class="mt-4">
+      You have successfully approved a movie in queue!
+    </b-alert>
+    <b-alert v-model="showDeleteMessage" variant="success" dismissible class="mt-4">
+      You have successfully deleted a movie from the queue!
+    </b-alert>
   </div>
 </template>
 
 <script>
-import {sha256} from "js-sha256";
 
 export default {
   data() {
     return {
+      showApproveMessage: false,
+      showDeleteMessage: false,
       fields: [
         {
           key: 'Title',
@@ -55,32 +62,34 @@ export default {
           label: 'Actions'
         }
       ],
-      // movies: [
-      //   { id: '0', title: 'Test Title', releaseDate: '2021', genre: 'Action', length: 120 },
-      //   { id: '1', title: 'Test Title 2', releaseDate: '2022', genre: 'Drama', length: 130 },
-      //   { id: '2', title: 'Test Title 3', releaseDate: '2022', genre: 'Adventure', length: 125 },
-      //   { id: '3', title: 'Test Title 4', releaseDate: '2023', genre: 'Adventure', length: 121 },
-      //   { id: '4', title: 'Test Title 5', releaseDate: '2024', genre: 'Drama', length: 164 }
-      // ]
       movies: [],
     }
   },
   async fetch() {
     let unverified = await this.$axios.get('/server-middleware/api/movies/unverified/get')
     this.movies = unverified.data
-    await console.log(this.movies)
   },
   methods: {
     async approveMovie(id) {
-      let verifyResponse = await this.$axios.$post('/server-middleware/api/movies/unverified/verify/', {
-        id: id,
-      })
+      try {
+        await this.$axios.$post('/server-middleware/api/movies/unverified/verify/', {
+          id: id,
+        })
+        this.showApproveMessage = true
+      } catch (e) {
+        console.log(e)
+      }
     },
 
     async denyMovie(id) {
-      let denyResponse = await this.$axios.$post('/server-middleware/api/movies/unverified/deny/', {
-        id: id,
-      })
+      try {
+        await this.$axios.$post('/server-middleware/api/movies/unverified/deny/', {
+          id: id,
+        })
+        this.showDeleteMessage = true
+      } catch (e) {
+        console.log(e)
+      }
     }
   },
   name: 'AdminPage'
