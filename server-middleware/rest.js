@@ -79,6 +79,39 @@ app.get('/api/movies/unverified/get', async (req, res) => {
   res.send(result.recordsets[0])
 })
 
+app.post('/api/movies/unverified/verify', async (req, res) => {
+  try {
+    let user = await getUser(req)
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('MovieID', sql.Int, req.body.id)
+      .input('IsAdmin', sql.Int, user.admin ? 1 : 0)
+      .execute('MovieDatabase.VerifyMovie')
+
+    return res.status(200).end()
+  } catch (e) {
+    console.log(e)
+    return res.status(500).end()
+  }
+})
+
+// Post method to deny a movie from being verified
+app.post('/api/movies/unverified/deny', async (req, res) => {
+  try {
+    let user = await getUser(req)
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('MovieID', sql.Int, req.body.id)
+      .input('IsAdmin', sql.Int, user.admin ? 1 : 0)
+      .execute('MovieDatabase.DeleteMovie')
+
+    return res.status(200).end()
+  } catch (e) {
+    console.log(e)
+    return res.status(500).end()
+  }
+})
+
 // Sends a post request to the backend to create a new movie that is not verified
 app.post('/api/movies/submit', async (req, res) => {
   try {

@@ -7,10 +7,10 @@
         <h1 class="p-5">Admin Moderation Queue</h1>
         <b-table striped hover :items="movies" :fields="fields">
           <template #cell(actions)="row">
-            <b-button variant="primary" size="sm" class="mr-1">
+            <b-button @click="approveMovie(row.item.MovieID)" variant="primary" size="sm" class="mr-1">
               Approve
             </b-button>
-            <b-button size="sm" class="mr-1">
+            <b-button @click="denyMovie(row.item.MovieID)" size="sm" class="mr-1">
               Delete
             </b-button>
           </template>
@@ -21,6 +21,8 @@
 </template>
 
 <script>
+import {sha256} from "js-sha256";
+
 export default {
   data() {
     return {
@@ -63,6 +65,19 @@ export default {
     let unverified = await this.$axios.get('/server-middleware/api/movies/unverified/get')
     this.movies = unverified.data
     await console.log(this.movies)
+  },
+  methods: {
+    async approveMovie(id) {
+      let verifyResponse = await this.$axios.$post('/server-middleware/api/movies/unverified/verify/', {
+        id: id,
+      })
+    },
+
+    async denyMovie(id) {
+      let denyResponse = await this.$axios.$post('/server-middleware/api/movies/unverified/deny/', {
+        id: id,
+      })
+    }
   },
   name: 'AdminPage'
 }
