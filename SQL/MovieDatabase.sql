@@ -114,23 +114,6 @@ ELSE
   OFFSET (@Page - 1) * 50 ROWS FETCH NEXT 50 ROWS ONLY
 GO
 
-/*
--- Show all movies with a selected combination of genres (AGGREGATING QUERY) - POTENTIALLY BEING REPLACED
-CREATE OR ALTER PROCEDURE MovieDatabase.FilterByGenre
-   @GenreId INT
-AS
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews
-FROM MovieDatabase.Movies M
-	INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-	INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-  INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
-		AND G.GenreID = @GenreID
-WHERE M.IsDeleted = 0
-  AND VerifiedOn IS NOT NULL
-GROUP BY M.MovieID, M.Title, M.[Year], M.[Length]
-ORDER BY AVG(R.StarRating) DESC , M.Title ASC
-GO */
-
 --Search for/return all the reviews for a given movie.
 CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
 	@MovieID INT
@@ -163,18 +146,29 @@ GROUP BY W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
 ORDER BY M.Title ASC
 GO
 
---Find all movies that have not been approved and information about the user that submitted it. (AGGREGATING QUERY)
+--Gets the most watchlisted movies (AGGREGATING QUERY)
+CREATE OR ALTER PROCEDURE GetMostWatchlisted
+AS
+SELECT M.MovieID, M.Title, M.[Year], M.Poster, COUNT(DISTINCT W.WatchlistID) AS TimesWatchlisted,
+  RANK() OVER(ORDER BY COUNT(DISTINCT W.WatchlistID) DESC) AS WatchlistedRank
+FROM MovieDatabase.Movies M
+  INNER JOIN MovieDatabase.Watchlists W ON W.MovieID = M.MovieID
+WHERE M.IsDeleted = 0
+  AND W.IsDeleted = 0
+GROUP BY M.MovieID, M.Title, M.[Year], M.Poster
+ORDER BY COUNT(DISTINCT W.WatchlistID), M.Title
+GO
+
+--Find all movies that have not been approved and information about the user that submitted it.
 CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
 AS
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], AVG(R.StarRating) AS Rating, G.[Name], U.UserID, U.DisplayName, M.CreatedOn, COUNT(DISTINCT M.MovieID) AS NumberOfUnverified
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn
 FROM MovieDatabase.Movies M
-	INNER JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
-  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-  INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
+	LEFT JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
+  LEFT JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+  LEFT JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
 WHERE M.VerifiedOn IS NULL
   AND M.IsDeleted = 0
-  AND VerifiedOn IS NOT NULL
 GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn, M.[Year], M.[Length], G.[Name]
 ORDER BY M.CreatedOn ASC
 GO
