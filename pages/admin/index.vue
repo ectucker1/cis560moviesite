@@ -15,6 +15,10 @@
             </b-button>
           </template>
         </b-table>
+        <h1 class="pt-5 pl-5">Other Admin Links</h1>
+        <b-link href="/admin/topreviewers" class="pl-5">Top Reviewers</b-link>
+        <br>
+        <b-link href="/admin/mostwatchlisted" class="pl-5">Most Watchlisted</b-link>
       </div>
     </b-container>
   </div>

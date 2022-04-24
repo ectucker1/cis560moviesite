@@ -147,7 +147,7 @@ ORDER BY M.Title ASC
 GO
 
 --Gets the most watchlisted movies (AGGREGATING QUERY)
-CREATE OR ALTER PROCEDURE GetMostWatchlisted
+CREATE OR ALTER PROCEDURE MovieDatabase.GetMostWatchlisted
 AS
 SELECT M.MovieID, M.Title, M.[Year], M.Poster, COUNT(DISTINCT W.WatchlistID) AS TimesWatchlisted,
   RANK() OVER(ORDER BY COUNT(DISTINCT W.WatchlistID) DESC) AS WatchlistedRank
@@ -176,11 +176,11 @@ GO
 --Get the top 50 users who have done the most reviews (AGGREGATING QUERY)
 CREATE OR ALTER PROCEDURE MovieDatabase.GetTopReviewers
 AS
-SELECT U.UserID, U.DisplayName, COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) AS UserReviewCount
+SELECT U.UserID, U.DisplayName, COUNT(R.ReviewID) AS UserReviewCount, AVG(R.StarRating) AS AverageRating
 FROM MovieDatabase.Users U
   INNER JOIN MovieDatabase.Reviews R ON U.UserID = R.ReviewingUserID
-GROUP BY U.UserID, U.DisplayName, R.ReviewID
-ORDER BY COUNT(R.ReviewID) OVER(PARTITION BY U.UserID) DESC
+GROUP BY U.UserID, U.DisplayName
+ORDER BY COUNT(R.ReviewID) DESC
 OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY
 GO
 
@@ -190,9 +190,9 @@ CREATE OR ALTER PROCEDURE MovieDatabase.GetMovieData
 AS
 SELECT M.Title, M.[Year], M.[Length], G.[Name], AVG(R.StarRating) AS StarRating, COUNT(DISTINCT R.ReviewID) AS NumberOfReviews, M.Poster
 FROM MovieDatabase.Movies M
-  INNER JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-  INNER JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-  INNER JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
+  LEFT JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+  LEFT JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+  LEFT JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
 WHERE M.MovieID = @MovieID
 GROUP BY M.Title, M.[Year], M.[Length], G.[Name], M.Poster
 GO

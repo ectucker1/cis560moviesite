@@ -286,4 +286,18 @@ app.all('/getgenres/', async (req, res) => {
   await res.send(result.recordsets[0])
 })
 
+app.all('/topreviewers/', async (req, res) => {
+  let pool = await sql.connect(sqlConfig)
+  let result = await pool.request()
+    .execute('MovieDatabase.GetTopReviewers')
+  await res.send(result.recordsets[0])
+})
+
+app.all('/mostwatchlisted/', async (req, res) => {
+  let pool = await sql.connect(sqlConfig)
+  let result = await pool.request()
+    .execute('MovieDatabase.GetMostWatchlisted')
+  await res.send(result.recordsets[0])
+})
+
 module.exports = app
