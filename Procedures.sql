@@ -1,81 +1,6 @@
 
---Setup
-IF SCHEMA_ID(N'MovieDatabase') IS NULL
-   EXEC(N'CREATE SCHEMA [MovieDatabase];');
-GO
-
-DROP TABLE IF EXISTS MovieDatabase.MovieGenres;
-DROP TABLE IF EXISTS MovieDatabase.Genres;
-DROP TABLE IF EXISTS MovieDatabase.Watchlists;
-DROP TABLE IF EXISTS MovieDatabase.Reviews;
-DROP TABLE IF EXISTS MovieDatabase.Movies;
-DROP TABLE IF EXISTS MovieDatabase.Users;
-
---TABLE DECLARATIONS
-CREATE TABLE MovieDatabase.Users
-(
-	UserID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	Email NVARCHAR(128) NOT NULL UNIQUE,
-	DisplayName NVARCHAR(64) NOT NULL,
-	PasswordHash NVARCHAR(128) NOT NULL,
-	IsAdmin INT NOT NULL CHECK(IsAdmin BETWEEN 0 AND 1) DEFAULT(0)
-);
-
-CREATE TABLE MovieDatabase.Movies
-(
-	MovieID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	Title NVARCHAR(128) NOT NULL,
-	[Length] INT NOT NULL,
-	[Year] INT NOT NULL,
-	IMDBID INT DEFAULT(NULL),
-	Poster NVARCHAR(256) NOT NULL DEFAULT(N'/nocover.jpg'),
-	VerifiedOn DATETIMEOFFSET DEFAULT(NULL),
-	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0),
-	CreatedOn DATETIMEOFFSET NOT NULL DEFAULT(SYSDATETIMEOFFSET()),
-	CreatedByUserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID)
-
-	UNIQUE([Year], [Title])
-);
-
-CREATE TABLE MovieDatabase.Reviews
-(
-	ReviewID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	ReviewingUserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID),
-	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
-	StarRating INT NOT NULL CHECK(StarRating BETWEEN 0 AND 5),
-	[Text] NVARCHAR(2048),
-	PostedOn DATETIMEOFFSET NOT NULL DEFAULT(SYSDATETIMEOFFSET()),
-	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0)
-);
-
-CREATE TABLE MovieDatabase.Watchlists
-(
-	WatchlistID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	UserID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Users(UserID),
-	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
-	WatchedOn DATETIMEOFFSET DEFAULT(NULL),
-	IsDeleted INT NOT NULL CHECK(IsDeleted BETWEEN 0 AND 1) DEFAULT(0)
-
-	UNIQUE(UserID, MovieID)
-);
-
-CREATE TABLE MovieDatabase.Genres
-(
-	GenreID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	[Name] NVARCHAR(64) NOT NULL UNIQUE
-);
-
-CREATE TABLE MovieDatabase.MovieGenres
-(
-	MovieGenreID INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	MovieID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Movies(MovieID),
-	GenreID INT NOT NULL FOREIGN KEY REFERENCES MovieDatabase.Genres(GenreID)
-
-	UNIQUE(MovieID, GenreID)
-);
-
-
 --QUERY/GENERAL STORED PROCEDURES
+--Aggregating queries are listed first
 
 --Searches for movies with the given filters (AGGREGATING QUERY)
 GO
@@ -114,38 +39,6 @@ ELSE
   OFFSET (@Page - 1) * 50 ROWS FETCH NEXT 50 ROWS ONLY
 GO
 
---Search for/return all the reviews for a given movie.
-CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
-	@MovieID INT
-AS
-SELECT R.ReviewID, U.DisplayName, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn
-FROM MovieDatabase.Reviews R
-  INNER JOIN MovieDatabase.Users U ON U.UserID = R.ReviewingUserID
-	INNER JOIN MovieDatabase.Movies M ON M.MovieID = R.MovieID
-		AND R.MovieID = @MovieID
-WHERE M.IsDeleted = 0
-  AND VerifiedOn IS NOT NULL
-  AND R.IsDeleted = 0
-GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn, U.DisplayName
-ORDER BY R.PostedOn DESC
-GO
-
---Find all movies on a userâ€™s watchlist
-CREATE OR ALTER PROCEDURE MovieDatabase.GetWatchlist
-	@UserID INT
-AS
-SELECT W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
-FROM MovieDatabase.Movies M
-	INNER JOIN MovieDatabase.Watchlists W ON W.MovieID = M.MovieID
-	INNER JOIN MovieDatabase.Users U ON U.UserID = W.UserID
-		AND U.UserID = @UserID
-WHERE M.IsDeleted = 0
-  AND W.IsDeleted = 0
-  AND VerifiedOn IS NOT NULL
-GROUP BY W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
-ORDER BY M.Title ASC
-GO
-
 --Gets the most watchlisted movies (AGGREGATING QUERY)
 CREATE OR ALTER PROCEDURE MovieDatabase.GetMostWatchlisted
 AS
@@ -157,20 +50,6 @@ WHERE M.IsDeleted = 0
   AND W.IsDeleted = 0
 GROUP BY M.MovieID, M.Title, M.[Year], M.Poster
 ORDER BY COUNT(DISTINCT W.WatchlistID), M.Title
-GO
-
---Find all movies that have not been approved and information about the user that submitted it.
-CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
-AS
-SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn
-FROM MovieDatabase.Movies M
-	LEFT JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
-  LEFT JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
-  LEFT JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
-WHERE M.VerifiedOn IS NULL
-  AND M.IsDeleted = 0
-GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn, M.[Year], M.[Length], G.[Name]
-ORDER BY M.CreatedOn ASC
 GO
 
 --Get the top 50 users who have done the most reviews (AGGREGATING QUERY)
@@ -195,6 +74,52 @@ FROM MovieDatabase.Movies M
   LEFT JOIN MovieDatabase.Reviews R ON R.MovieID = M.MovieID
 WHERE M.MovieID = @MovieID
 GROUP BY M.Title, M.[Year], M.[Length], G.[Name], M.Poster
+GO
+
+--Search for/return all the reviews for a given movie.
+CREATE OR ALTER PROCEDURE MovieDatabase.GetReviews
+	@MovieID INT
+AS
+SELECT R.ReviewID, U.DisplayName, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn
+FROM MovieDatabase.Reviews R
+  INNER JOIN MovieDatabase.Users U ON U.UserID = R.ReviewingUserID
+	INNER JOIN MovieDatabase.Movies M ON M.MovieID = R.MovieID
+		AND R.MovieID = @MovieID
+WHERE M.IsDeleted = 0
+  AND VerifiedOn IS NOT NULL
+  AND R.IsDeleted = 0
+GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn, U.DisplayName
+ORDER BY R.PostedOn DESC
+GO
+
+--Find all movies on a user’s watchlist
+CREATE OR ALTER PROCEDURE MovieDatabase.GetWatchlist
+	@UserID INT
+AS
+SELECT W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
+FROM MovieDatabase.Movies M
+	INNER JOIN MovieDatabase.Watchlists W ON W.MovieID = M.MovieID
+	INNER JOIN MovieDatabase.Users U ON U.UserID = W.UserID
+		AND U.UserID = @UserID
+WHERE M.IsDeleted = 0
+  AND W.IsDeleted = 0
+  AND VerifiedOn IS NOT NULL
+GROUP BY W.WatchListID, M.Title, W.WatchedOn, M.[Year], M.[Length]
+ORDER BY M.Title ASC
+GO
+
+--Find all movies that have not been approved and information about the user that submitted it.
+CREATE OR ALTER PROCEDURE MovieDatabase.GetUnverifiedMovies
+AS
+SELECT M.MovieID, M.Title, M.[Year], M.[Length], G.[Name], U.UserID, U.DisplayName, M.CreatedOn
+FROM MovieDatabase.Movies M
+	LEFT JOIN MovieDatabase.Users U ON U.UserID = M.CreatedByUserID
+  LEFT JOIN MovieDatabase.MovieGenres MG ON MG.MovieID = M.MovieID
+  LEFT JOIN MovieDatabase.Genres G ON G.GenreID = MG.GenreID
+WHERE M.VerifiedOn IS NULL
+  AND M.IsDeleted = 0
+GROUP BY M.MovieID, M.Title, U.UserID, U.DisplayName, M.CreatedOn, M.[Year], M.[Length], G.[Name]
+ORDER BY M.CreatedOn ASC
 GO
 
 --Function to check login information
@@ -244,6 +169,7 @@ AS
 SELECT G.GenreID, G.[Name]
 FROM MovieDatabase.Genres G
 GO
+
 
 --INSERT STORED PROCEDURES
 
@@ -297,6 +223,7 @@ AS
 INSERT MovieDatabase.Watchlists(UserID, MovieID)
 VALUES(@UserID, @MovieID)
 GO
+
 
 --UPDATE AND SOFT DELETE STORED PROCEDURES
 
