@@ -76,6 +76,7 @@ export default {
           id: id,
         })
         this.showApproveMessage = true
+        window.location.reload()
       } catch (e) {
         console.log(e)
       }
@@ -87,6 +88,7 @@ export default {
           id: id,
         })
         this.showDeleteMessage = true
+        window.location.reload()
       } catch (e) {
         console.log(e)
       }
