@@ -92,7 +92,16 @@ GROUP BY R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn, U.Di
 ORDER BY R.PostedOn DESC
 GO
 
---Find all movies on a user’s watchlist
+--Get a specific user's review of a specific movie, if it exists
+CREATE OR ALTER PROCEDURE MovieDatabase.GetReview
+  @UserID INT, @MovieID INT
+AS
+SELECT R.ReviewID, R.ReviewingUserID, R.StarRating, R.[Text], R.PostedOn
+FROM MovieDatabase.Reviews R
+WHERE R.MovieID = @MovieID AND R.ReviewingUserID = @UserID
+GO
+
+--Find all movies on a userï¿½s watchlist
 CREATE OR ALTER PROCEDURE MovieDatabase.GetWatchlist
 	@UserID INT
 AS
@@ -208,12 +217,23 @@ INSERT MovieDatabase.Users(Email, DisplayName, PasswordHash)
 VALUES(@Email, @DisplayName, @PasswordHash);
 GO
 
---Create new Review
-CREATE OR ALTER PROCEDURE MovieDatabase.CreateReview
+--Create new Review, or update an existing one
+CREATE OR ALTER PROCEDURE MovieDatabase.UpsertReview
   @UserID INT, @MovieID INT, @Text NVARCHAR(2048), @StarRating INT
 AS
-INSERT MovieDatabase.Reviews(ReviewingUserID, MovieID, [Text], StarRating)
-VALUES(@UserID, @MovieID, @Text, @StarRating)
+IF NOT EXISTS
+  (
+    SELECT * FROM MovieDatabase.Reviews R
+    WHERE R.MovieID = @MovieID AND R.ReviewingUserID = @UserID
+  )
+  INSERT MovieDatabase.Reviews(ReviewingUserID, MovieID, [Text], StarRating)
+  VALUES(@UserID, @MovieID, @Text, @StarRating)
+ELSE
+  UPDATE MovieDatabase.Reviews
+  SET
+    [Text] = @Text,
+    StarRating = @StarRating
+  WHERE MovieID = @MovieID AND ReviewingUserID = @UserID
 GO
 
 --Create new Watchlist
@@ -226,17 +246,6 @@ GO
 
 
 --UPDATE AND SOFT DELETE STORED PROCEDURES
-
---Update Review
-CREATE OR ALTER PROCEDURE MovieDatabase.UpdateReview
-  @ReviewID INT, @Text NVARCHAR(2048), @StarRating INT
-AS
-UPDATE MovieDatabase.Reviews
-SET
-  [Text] = @Text,
-  StarRating = @StarRating
-WHERE ReviewID = @ReviewID
-GO
 
 --Delete Review
 CREATE OR ALTER PROCEDURE MovieDatabase.DeleteReview

@@ -185,6 +185,44 @@ app.get('/api/reviews/:movieID', async (req, res) => {
   })
 })
 
+// Get the logged in users review of a movie
+app.get('/api/reviews/:movieID/me', async (req, res) => {
+  let user = await getUser(req)
+
+  if (user.loggedIn) {
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('UserID', sql.Int, user.id)
+      .input('MovieID', sql.Int, req.params.movieID)
+      .execute('MovieDatabase.GetReview')
+    let review = result.recordset
+    if (review)
+      res.send(review)
+    else
+      res.status(404).end()
+  } else {
+    res.status(401).end()
+  }
+})
+
+// Create or update the logged in user's review of a movie
+app.all('/api/reviews/:movieID/post', async (req, res) => {
+  let user = await getUser(req)
+
+  if (user.loggedIn) {
+    let pool = await sql.connect(sqlConfig)
+    let result = await pool.request()
+      .input('UserID', sql.Int, user.id)
+      .input('MovieID', sql.Int, req.params.movieID)
+      .input('Text', sql.NVarChar(2048), req.body.Text)
+      .input('StarRating', sql.Int, req.body.StarRating)
+      .execute('MovieDatabase.UpsertReview')
+    res.status(200).end()
+  } else {
+    res.status(401).end()
+  }
+})
+
 // Returns all the information about a movie given its ID
 app.get('/api/movies/:movieID', async (req, res) => {
   // Search for movie in database

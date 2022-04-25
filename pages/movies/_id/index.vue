@@ -14,18 +14,28 @@
           <h3 class="pb-2">{{ movie.Name }}</h3>
           <h3 class="pb-2">{{ movie.Length }} minutes</h3>
           <!--Prompt for user's review-->
-          <h1>Write a Review</h1>
-          <p>Your review will and rating will be publicly visible.</p>
-          <b-form-rating v-model="user.rating" no-border size="lg" class="bg-light"></b-form-rating>
-          <b-form-textarea
-            id="user-review"
-            placeholder="Your review here"
-            v-model="user.review"
-            rows="10"
-          />
-          <b-button variant="primary" size="sm" class="mr-1 mt-2">
-            Share Review
-          </b-button>
+          <div v-if="$auth.loggedIn">
+            <h1>Write a Review</h1>
+            <p>Your review will and rating will be publicly visible.</p>
+            <b-form @submit.prevent="submitReview">
+              <b-form-rating v-model="userReview.StarRating" no-border size="lg" class="bg-light"></b-form-rating>
+              <b-form-textarea
+                id="user-review"
+                placeholder="Your review here"
+                v-model="userReview.Text"
+                rows="10"
+              />
+              <b-button type="submit" variant="primary" size="sm" class="mr-1 mt-2">
+                Share Review
+              </b-button>
+            </b-form>
+            <b-alert v-model="showPosted" variant="success" dismissible class="mt-4">
+              Review posted!
+            </b-alert>
+            <b-alert v-model="showError" variant="danger" dismissible class="mt-4">
+              Error posting review.
+            </b-alert>
+          </div>
         </b-col>
       </b-row>
       <h1 class="pt-5">Reviews for {{ movie.Title }}</h1>
@@ -50,27 +60,13 @@ export default {
   data() {
     return {
       movie: {},
-      // movie: {
-      //   title: 'Test Movie',
-      //   id: this.$route.params.id,
-      //   genre: 'Action',
-      //   releaseDate: 2000,
-      //   length: 120,
-      //   rating: 4,
-      //   imageUrl: '/nocover.jpg'
-      // },
-      user: {
-        rating: null,
-        review: null
+      userReview: {
+        StarRating: null,
+        Text: null
       },
-     reviews: [],
-      // reviews: [
-      //   { rating: 4, author: "Test User A", content: "It's pretty good I guess.", date: '1/2/2022' },
-      //   { rating: 2, author: "Test User B", content: "It's not very good.", date: '1/3/2022' },
-      //   { rating: 3, author: "Test User C", content: "Lorem ipsum.", date: '1/7/2022' },
-      //   { rating: 5, author: "Test User D", content: "I haven't watched it.", date: '2/2/2022' },
-      //   { rating: 1, author: "Test User E", content: "Yes.", date: '1/8/2022' }
-      // ]
+      reviews: [],
+      showPosted: false,
+      showError: false
     }
   },
   async fetch() {
@@ -80,6 +76,23 @@ export default {
     let reviewData = await this.$axios.get('/server-middleware/api/reviews/' + this.$route.params.id)
     this.reviews = await reviewData.data["reviews"]
     console.log(this.movie)
+
+    try {
+      let userReview = await this.$axios.get('/server-middleware/api/reviews/' + this.$route.params.id + '/me')
+      if (userReview.data[0])
+        this.userReview = userReview.data[0]
+    } catch (err) {}
+  },
+  methods: {
+    async submitReview() {
+      try {
+        console.log(this.userReview)
+        let response = await this.$axios.post('/server-middleware/api/reviews/' + this.$route.params.id + '/post', this.userReview)
+        this.showPosted = true
+      } catch (err) {
+        this.showError = true
+      }
+    }
   }
 }
 </script>
