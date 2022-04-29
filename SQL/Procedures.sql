@@ -49,7 +49,7 @@ FROM MovieDatabase.Movies M
 WHERE M.IsDeleted = 0
   AND W.IsDeleted = 0
 GROUP BY M.MovieID, M.Title, M.[Year], M.Poster
-ORDER BY COUNT(DISTINCT W.WatchlistID), M.Title
+ORDER BY COUNT(DISTINCT W.WatchlistID) DESC, M.Title
 GO
 
 --Get the top 50 users who have done the most reviews (AGGREGATING QUERY)
